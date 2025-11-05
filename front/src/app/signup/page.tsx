@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation"; // 👈 for navigation
 import { signUp, confirmSignUp } from "aws-amplify/auth";
 
 export default function SignupPage() {
@@ -8,9 +9,12 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [step, setStep] = useState<"signup" | "confirm">("signup");
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const handleSignup = async () => {
     try {
+      setLoading(true);
       await signUp({
         username: email,
         password,
@@ -19,15 +23,22 @@ export default function SignupPage() {
       setStep("confirm");
     } catch (err: any) {
       alert(err.message || "Error signing up");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleConfirm = async () => {
     try {
+      setLoading(true);
       await confirmSignUp({ username: email, confirmationCode: code });
-      alert("✅ Signup confirmed! You can now log in.");
+      alert("✅ Signup confirmed! Redirecting to login...");
+      // 👇 Redirect to login page after 2 seconds
+      setTimeout(() => router.push("/login"), 1500);
     } catch (err: any) {
       alert(err.message || "Error confirming signup");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -43,18 +54,23 @@ export default function SignupPage() {
               placeholder="Email"
               className="w-full p-2 mb-3 bg-gray-700 rounded"
               onChange={(e) => setEmail(e.target.value)}
+              value={email}
             />
             <input
               type="password"
               placeholder="Password"
               className="w-full p-2 mb-3 bg-gray-700 rounded"
               onChange={(e) => setPassword(e.target.value)}
+              value={password}
             />
             <button
               onClick={handleSignup}
-              className="bg-blue-600 hover:bg-blue-700 w-full py-2 rounded mt-2"
+              disabled={loading}
+              className={`${
+                loading ? "bg-blue-400" : "bg-blue-600 hover:bg-blue-700"
+              } w-full py-2 rounded mt-2`}
             >
-              Sign Up
+              {loading ? "Signing Up..." : "Sign Up"}
             </button>
           </>
         )}
@@ -69,12 +85,16 @@ export default function SignupPage() {
               placeholder="Verification Code"
               className="w-full p-2 mb-3 bg-gray-700 rounded"
               onChange={(e) => setCode(e.target.value)}
+              value={code}
             />
             <button
               onClick={handleConfirm}
-              className="bg-green-600 hover:bg-green-700 w-full py-2 rounded mt-2"
+              disabled={loading}
+              className={`${
+                loading ? "bg-green-400" : "bg-green-600 hover:bg-green-700"
+              } w-full py-2 rounded mt-2`}
             >
-              Confirm Account
+              {loading ? "Verifying..." : "Confirm Account"}
             </button>
           </>
         )}
