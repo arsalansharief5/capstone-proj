@@ -6,6 +6,6 @@ api = NinjaAPI()
 def hello(request):
     return {"hello": "message"}
 
-@api.get("/secure-hello", auth=CustomAuth())
+@api.post("/secure-hello", auth=CustomAuth())
 def secure_hello(request, payload: HelloTestResponse):
     return {"secure_hello": payload.text}
