@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'backapp',
 ]
 
+AUTH_USER_MODEL="backapp.CustomUser"
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
