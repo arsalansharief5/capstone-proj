@@ -23,7 +23,7 @@ def get_upload_url(request, payload: GetSignedUrl):
     user = request.auth
     user_id = user['sub']
     file_id = str(uuid.uuid4())
-    key = f"videos/{user_id}/{file_id}-{payload.filename}"
+    key = f"videos/{user_id}/{file_id}-{payload.file_name}"
     presigned_url = s3.generate_presigned_url(
         ClientMethod = 'put_object', 
         Params = {

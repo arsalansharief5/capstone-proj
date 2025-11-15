@@ -96,7 +96,9 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mail, Lock, Loader2, Sparkles, X } from "lucide-react";
-import {useRouter} from "next/navigation";
+import { useRouter } from "next/navigation";
+import { signIn } from "aws-amplify/auth";
+
 export default function LoginPage() {
   const router = useRouter();
   const [showLogin, setShowLogin] = useState(false);
@@ -108,18 +110,27 @@ export default function LoginPage() {
   const handleLogin = async () => {
     try {
       setLoading(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      alert("✅ Login successful!");
+
+      // 🔥 ACTUAL COGNITO LOGIN HERE
+      const result = await signIn({
+        username: email,
+        password: password,
+      });
+
+      console.log("COGNITO LOGIN RESULT:", result);
+
+      alert("✅ Logged in with Cognito!");
       router.push("/dashboard");
-    } catch (err) {
-      alert("Error logging in");
+
+    } catch (err: any) {
+      console.error("Login error:", err);
+      alert("❌ Login failed: " + (err.message || err));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleKeyPress = (e:any) => {
+  const handleKeyPress = (e: any) => {
     if (e.key === "Enter" && !loading && email && password) {
       handleLogin();
     }
@@ -131,22 +142,12 @@ export default function LoginPage() {
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
           className="absolute -top-1/2 -right-1/2 w-[1000px] h-[1000px] bg-blue-500/10 rounded-full blur-3xl"
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.5, 0.3],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
+          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div
           className="absolute -bottom-1/2 -left-1/2 w-[1000px] h-[1000px] bg-purple-500/10 rounded-full blur-3xl"
-          animate={{
-            scale: [1.2, 1, 1.2],
-            opacity: [0.3, 0.5, 0.3],
-          }}
+          animate={{ scale: [1.2, 1, 1.2], opacity: [0.3, 0.5, 0.3] }}
           transition={{
             duration: 8,
             repeat: Infinity,
@@ -156,7 +157,7 @@ export default function LoginPage() {
         />
       </div>
 
-      {/* Grid pattern overlay */}
+      {/* Grid overlay */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-[size:100px_100px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
 
       {/* Content */}
@@ -164,7 +165,7 @@ export default function LoginPage() {
         <div className="w-full max-w-7xl mx-auto">
           <div className="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-20">
             
-            {/* Left side - Hero content */}
+            {/* Left side */}
             <motion.div
               className="flex-1 text-center lg:text-left"
               initial={{ opacity: 0, x: -50 }}
@@ -198,7 +199,7 @@ export default function LoginPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
               >
-                Access your dashboard and unlock powerful features designed to elevate your experience.
+                Access your dashboard and unlock powerful features.
               </motion.p>
 
               <AnimatePresence mode="wait">
@@ -213,32 +214,13 @@ export default function LoginPage() {
                     whileHover={{ scale: 1.05, y: -2 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    <motion.div
-                      className="absolute inset-0 bg-gradient-to-r from-blue-400 via-purple-400 to-blue-400"
-                      animate={{
-                        x: ["-100%", "100%"],
-                      }}
-                      transition={{
-                        duration: 3,
-                        repeat: Infinity,
-                        ease: "linear",
-                      }}
-                      style={{ opacity: 0.3 }}
-                    />
-                    <span className="relative z-10">Get Started</span>
-                    <motion.span
-                      className="relative z-10"
-                      animate={{ x: [0, 5, 0] }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
-                    >
-                      →
-                    </motion.span>
+                    <span className="relative z-10">Get Started →</span>
                   </motion.button>
                 )}
               </AnimatePresence>
             </motion.div>
 
-            {/* Right side - Login form */}
+            {/* Right side - Form */}
             <div className="flex-1 w-full max-w-md">
               <AnimatePresence>
                 {showLogin && (
@@ -247,145 +229,79 @@ export default function LoginPage() {
                     animate={{ opacity: 1, x: 0, scale: 1 }}
                     exit={{ opacity: 0, x: 50, scale: 0.9 }}
                     transition={{ duration: 0.5, ease: "easeOut" }}
-                    className="relative"
                   >
-                    {/* Glow effect */}
-                    <motion.div
-                      className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 rounded-3xl blur-xl opacity-30"
-                      animate={{
-                        opacity: [0.3, 0.5, 0.3],
-                      }}
-                      transition={{
-                        duration: 3,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                      }}
-                    />
-
-                    {/* Form container */}
                     <div className="relative bg-slate-900/80 backdrop-blur-xl p-8 sm:p-10 rounded-3xl border border-slate-800 shadow-2xl">
-                      {/* Close button */}
                       <motion.button
                         onClick={() => setShowLogin(false)}
                         className="absolute top-4 right-4 p-2 rounded-full bg-slate-800/50 hover:bg-slate-700/50 transition-colors"
-                        whileHover={{ scale: 1.1, rotate: 90 }}
-                        whileTap={{ scale: 0.9 }}
                       >
                         <X className="w-5 h-5 text-slate-400" />
                       </motion.button>
 
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                      >
-                        <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
-                          Welcome Back
-                        </h2>
-                        <p className="text-slate-400 mb-8">
-                          Sign in to continue your journey
-                        </p>
-                      </motion.div>
+                      <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
+                        Welcome Back
+                      </h2>
+                      <p className="text-slate-400 mb-8">
+                        Sign in to continue
+                      </p>
 
-                      {/* Email input */}
-                      <motion.div
-                        className="mb-5"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
-                      >
-                        <label className="block text-sm font-medium text-slate-300 mb-2">
-                          Email
-                        </label>
-                        <div className="relative group">
-                          <Mail className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors ${
-                            focusedInput === "email" ? "text-blue-400" : "text-slate-500"
-                          }`} />
+                      {/* Email */}
+                      <div className="mb-5">
+                        <label className="block text-sm font-medium text-slate-300 mb-2">Email</label>
+                        <div className="relative">
+                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
                           <input
                             type="email"
                             placeholder="you@example.com"
-                            className="w-full pl-12 pr-4 py-3 bg-slate-800/50 text-white rounded-xl border border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all placeholder:text-slate-500"
-                            onChange={(e) => setEmail(e.target.value)}
-                            onFocus={() => setFocusedInput("email")}
-                            onBlur={() => setFocusedInput("")}
-                            onKeyPress={handleKeyPress}
+                            className="w-full pl-12 pr-4 py-3 bg-slate-800/50 text-white rounded-xl border border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
                             value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            onKeyDown={handleKeyPress}
                           />
                         </div>
-                      </motion.div>
+                      </div>
 
-                      {/* Password input */}
-                      <motion.div
-                        className="mb-6"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4 }}
-                      >
-                        <label className="block text-sm font-medium text-slate-300 mb-2">
-                          Password
-                        </label>
-                        <div className="relative group">
-                          <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors ${
-                            focusedInput === "password" ? "text-blue-400" : "text-slate-500"
-                          }`} />
+                      {/* Password */}
+                      <div className="mb-6">
+                        <label className="block text-sm font-medium text-slate-300 mb-2">Password</label>
+                        <div className="relative">
+                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
                           <input
                             type="password"
                             placeholder="••••••••"
-                            className="w-full pl-12 pr-4 py-3 bg-slate-800/50 text-white rounded-xl border border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all placeholder:text-slate-500"
-                            onChange={(e) => setPassword(e.target.value)}
-                            onFocus={() => setFocusedInput("password")}
-                            onBlur={() => setFocusedInput("")}
-                            onKeyPress={handleKeyPress}
+                            className="w-full pl-12 pr-4 py-3 bg-slate-800/50 text-white rounded-xl border border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
                             value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            onKeyDown={handleKeyPress}
                           />
                         </div>
-                      </motion.div>
+                      </div>
 
-                      {/* Login button */}
+                      {/* Login Button */}
                       <motion.button
                         onClick={handleLogin}
                         disabled={loading || !email || !password}
-                        className={`w-full py-4 rounded-xl font-semibold text-white transition-all duration-300 relative overflow-hidden ${
+                        className={`w-full py-4 rounded-xl font-semibold text-white transition-all duration-300 ${
                           loading || !email || !password
                             ? "bg-slate-700 cursor-not-allowed"
                             : "bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg hover:shadow-blue-500/30"
                         }`}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.5 }}
-                        whileHover={!loading && email && password ? { scale: 1.02, y: -2 } : {}}
-                        whileTap={!loading && email && password ? { scale: 0.98 } : {}}
                       >
-                        {loading && (
-                          <motion.div
-                            className="absolute inset-0 bg-gradient-to-r from-blue-400 via-purple-400 to-blue-400"
-                            animate={{ x: ["-100%", "100%"] }}
-                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                          />
+                        {loading ? (
+                          <span className="flex items-center justify-center gap-2">
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            Signing in...
+                          </span>
+                        ) : (
+                          "Sign In"
                         )}
-                        <span className="relative z-10 flex items-center justify-center gap-2">
-                          {loading ? (
-                            <>
-                              <Loader2 className="w-5 h-5 animate-spin" />
-                              Signing in...
-                            </>
-                          ) : (
-                            "Sign In"
-                          )}
-                        </span>
                       </motion.button>
 
-                      {/* Forgot password */}
-                      <motion.div
-                        className="mt-6 text-center"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.6 }}
-                      >
-                        <a href="#" className="text-sm text-slate-400 hover:text-blue-400 transition-colors">
+                      <div className="mt-6 text-center">
+                        <a href="#" className="text-sm text-slate-400 hover:text-blue-400">
                           Forgot your password?
                         </a>
-                      </motion.div>
+                      </div>
                     </div>
                   </motion.div>
                 )}
