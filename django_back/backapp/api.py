@@ -4,6 +4,7 @@ from .schema import HelloTestResponse, GetSignedUrl
 import uuid, boto3
 import os
 from dotenv import load_dotenv
+from google.cloud import pubsub_v1
 api = NinjaAPI()
 load_dotenv()
 s3 = boto3.client(
@@ -13,7 +14,10 @@ s3 = boto3.client(
     aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY"),
 )
 bucket_name = os.getenv("S3_BUCKET_NAME")
-
+credentials_path= os.getenv("GCP_CREDENTIALS_PATH")
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
+publisher = pubsub_v1.PublisherClient()
+topic_path= os.getenv("TOPIC_PATH")
 @api.post("/secure-hello", auth=CustomAuth())
 def secure_hello(request, payload: HelloTestResponse):
     return {"secure_hello": payload.text}
@@ -33,4 +37,13 @@ def get_upload_url(request, payload: GetSignedUrl):
         }, 
         ExpiresIn = 600
     )
+    data = {
+        "user_id": user_id,
+        "file_key": key,
+        "file_name": payload.file_name,
+        "content_type": payload.content_type
+    }
+    data = str(data).encode('utf-8')
+    future = publisher.publish(topic_path, data)
+    print(f"Published message ID: {future.result()}")
     return {"upload_url": presigned_url, "file_key": key}
