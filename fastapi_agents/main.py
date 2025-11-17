@@ -3,6 +3,7 @@ import os
 from dotenv import load_dotenv
 from google.cloud import pubsub_v1
 import threading
+import json
 from concurrent.futures import TimeoutError
 app = FastAPI()
 @app.get("/hello")
@@ -34,4 +35,5 @@ def launch_subscriber():
 
 @app.get("/status")
 async def check():
+    print("RAW:", repr(app.state.mess))
     return {"message": app.state.mess}

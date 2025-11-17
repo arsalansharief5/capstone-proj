@@ -6,6 +6,7 @@ import os
 from dotenv import load_dotenv
 from google.cloud import pubsub_v1
 from datetime import datetime
+import json
 api = NinjaAPI()
 load_dotenv()
 s3 = boto3.client(
@@ -46,7 +47,7 @@ def get_upload_url(request, payload: GetSignedUrl):
         "correlation_id": str(uuid.uuid4()), 
         "timestamp": datetime.utcnow().isoformat()
     }
-    data = str(data).encode('utf-8')
+    data = json.dumps(data).encode("utf-8")
     future = publisher.publish(topic_path, data)
     print(f"Published message ID: {future.result()}")
     return {"upload_url": presigned_url, "file_key": key}
