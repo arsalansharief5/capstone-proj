@@ -1,30 +1,23 @@
 from strands import Agent, tool
-from strands.models.base import LLMModel
+from strands.models.gemini import GeminiModel
 import requests
 import os
 from dotenv import load_dotenv
 import boto3
-
+import fitz
 load_dotenv()
-class GroqModel(LLMModel):
-    def __init__(self, api_key, model_name="llama3-70b-8192"):
-        self.api_key = api_key
-        self.model_name = model_name
-    async def acompletion(self, prompt: str):
-        payload = {
-            "model": self.model_name,
-            "messages": [
-                {"role": "user", "content": prompt}
-            ]
-        }
-        response = requests.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers={"Authorization": f"Bearer {self.api_key}"},
-            json=payload
-        )
-        data = response.json()
-        return data["choices"][0]["message"]["content"]
-
+model = GeminiModel(
+    client_args={
+        "api_key": os.getenv("GEMINI_API_KEY")
+    },
+    model_id="gemini-2.5-flash",
+    params={
+        "temperature": 0.5,
+        "max_output_tokens": 2048,
+        "top_p": 0.9,
+        "top_k": 40
+    }
+)
 s3 = boto3.client(
     's3', 
     aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"), 
@@ -34,12 +27,14 @@ s3 = boto3.client(
 
 @tool
 def legal_mystic(file_key: str):
-    """Fetch the document from S3 for analysis."""
+    """Fetch the document from S3."""
     bucket = os.getenv("AWS_BUCKET_NAME")
     obj = s3.get_object(Bucket=bucket, Key=file_key)
     content = obj['Body'].read()
-    return content
+    pdf = fitz.open(stream=content, filetype="pdf")
+    text = ""
+    for page in pdf:
+        text += page.get_text()
+    return text
 
-model = GroqModel(api_key=os.getenv("GROQ_API_KEY"))
-
-agent = Agent(model=model,tools=[legal_mystic])
+agent = Agent(model=model, tools=[legal_mystic])
