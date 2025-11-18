@@ -25,7 +25,7 @@ export default function ChatPage() {
       const token = session.tokens?.idToken?.toString();
       console.log("ID TOKEN RAW:", session.tokens?.idToken);
       const res = await fetch(
-        "http://127.0.0.1:8000/api/get-upload-url",
+        "https://ideal-giggle-5g4r6v46vrw42vpr4-8000.app.github.dev/api/get-upload-url",
         {
           method: "POST",
           headers: {
