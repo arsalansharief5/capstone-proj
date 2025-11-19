@@ -38,7 +38,7 @@ def launch_subscriber():
     print("🎉 Pub/Sub listener running in background thread!")
 
 @app.get("/status")
-async def check(req: Req, user = Depends(get_current_user)):
+async def check(user = Depends(get_current_user)):
     print("RAW:", repr(app.state.mess))
     payload = json.loads(app.state.mess)
     print("File key: "+ payload["file_key"])
