@@ -6,6 +6,9 @@ import threading
 import json
 from concurrent.futures import TimeoutError
 from agents.agent import agent
+from fastapi import Request as Req
+from fastapi import Depends
+from auth import get_current_user
 app = FastAPI()
 @app.get("/hello")
 async def hello():
@@ -35,7 +38,7 @@ def launch_subscriber():
     print("🎉 Pub/Sub listener running in background thread!")
 
 @app.get("/status")
-async def check():
+async def check(req: Req, user = Depends(get_current_user)):
     print("RAW:", repr(app.state.mess))
     payload = json.loads(app.state.mess)
     print("File key: "+ payload["file_key"])
