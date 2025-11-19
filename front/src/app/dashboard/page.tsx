@@ -1,86 +1,55 @@
 "use client";
- 
+
 import { useState } from "react";
 import { fetchAuthSession, signOut } from "aws-amplify/auth";
 import { useRouter } from "next/navigation";
 
 export default function ChatPage() {
   const router = useRouter();
+
   const [file, setFile] = useState<File | null>(null);
+  const [loadingUpload, setLoadingUpload] = useState(false);
+  const [loadingAgent, setLoadingAgent] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  const [result, setResult] = useState<string | null>(null);
+  const [history, setHistory] = useState<any[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
 
   const handleLogout = async () => {
     await signOut();
     router.push("/");
   };
-  const chatHistory = async() => {
-    try{
-       const session = await fetchAuthSession();
-       const token = session.tokens?.idToken?.toString();
-       const res = await fetch(
-        "http://localhost:8000/api/chat-history", 
-        {
-           method: "GET", 
-           headers: {
-              "Content-Type": "application/json", 
-              Authorization: `Bearer ${token}`
-           },
-        }
-       )
-       const data = await res.json();
-          console.log("History", data);
-    }
-    catch(err){
-      console.log(err);
-    }
-  }
-  const agentResult = async() => {
-      try{
-        const session = await fetchAuthSession(); 
-        const token = session.tokens?.idToken?.toString();
-         const res = await fetch(
-           "http://localhost:8080/status", 
-           {
-              method: "GET", 
-              headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`,
-              },
-           }
-         )
-         const data = await res.json();
-          console.log("Agent Result:", data);
-      }
-      catch(err){
-        console.log("Error fetching agent result:", err);
-      }
-  }
+
+  // ---------------------------- Upload File ----------------------------
   const uploadVideo = async () => {
     if (!file) {
-      alert("No file selected");
+      alert("Please choose a file first.");
       return;
     }
 
     try {
+      setLoadingUpload(true);
+      setResult(null);
+
       const session = await fetchAuthSession();
-      console.log("FULL SESSION:", session);
       const token = session.tokens?.idToken?.toString();
-      console.log("ID TOKEN RAW:", session.tokens?.idToken);
-      const res = await fetch(
-        "http://127.0.0.1:8000/api/get-upload-url",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            file_name: file.name,
-            content_type: file.type,
-          }),
-        }
-      );
+
+      const res = await fetch("http://127.0.0.1:8000/api/get-upload-url", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          file_name: file.name,
+          content_type: file.type,
+        }),
+      });
 
       const { upload_url, file_key } = await res.json();
+
+      // Upload the actual file
       await fetch(upload_url, {
         method: "PUT",
         headers: {
@@ -89,47 +58,168 @@ export default function ChatPage() {
         body: file,
       });
 
-      alert("Uploaded successfully! File key: " + file_key);
+      alert("Uploaded successfully!");
+
     } catch (err) {
       alert("Error: " + err);
+    } finally {
+      setLoadingUpload(false);
+    }
+  };
+
+  // ---------------------------- Agent Result ----------------------------
+  const agentResult = async () => {
+    try {
+      setLoadingAgent(true);
+      setResult(null);
+
+      const session = await fetchAuthSession();
+      const token = session.tokens?.idToken?.toString();
+
+      const res = await fetch("http://localhost:8080/status", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+      setResult(data.response);
+    } catch (err) {
+      console.log("Error fetching agent result:", err);
+    } finally {
+      setLoadingAgent(false);
+    }
+  };
+
+  // ---------------------------- Chat History ----------------------------
+  const chatHistory = async () => {
+    try {
+      setLoadingHistory(true);
+
+      const session = await fetchAuthSession();
+      const token = session.tokens?.idToken?.toString();
+
+      const res = await fetch("http://localhost:8000/api/chat-history", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+      setHistory(data);
+      setShowHistory(true);
+
+    } catch (err) {
+      console.log(err);
+    } finally {
+      setLoadingHistory(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex">
-      <main className="flex-1 flex flex-col items-center justify-center px-4">
-        <h2 className="text-2xl font-semibold mb-6">Upload your video</h2>
+    <div className="min-h-screen bg-black text-white flex items-center justify-center px-6 py-10">
+      <main className="w-full max-w-3xl bg-gray-900 rounded-2xl p-10 shadow-xl border border-gray-800">
+        <h1 className="text-3xl font-bold mb-6 text-purple-400">
+          Legal Document Analyzer ⚖️
+        </h1>
 
-        <div className="flex items-center bg-gray-800 rounded-full px-4 py-2 w-full max-w-xl">
+        {/* File Upload */}
+        <div className="space-y-4 mb-8">
           <input
             type="file"
-            className="bg-transparent text-white flex-1 outline-none"
+            className="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full 
+            file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700"
             onChange={(e) => setFile(e.target.files?.[0] || null)}
           />
 
           <button
             onClick={uploadVideo}
-            className="px-4 bg-purple-600 rounded hover:bg-purple-700"
+            disabled={loadingUpload}
+            className={`w-full py-2 rounded-lg bg-purple-600 hover:bg-purple-700 transition ${
+              loadingUpload ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           >
-            Upload
-          </button>
-          <button
-            onClick={agentResult}
-            className="px-4 bg-purple-600 rounded hover:bg-purple-700"
-          >
-            Get instant Result
-          </button>
-          <button
-            onClick={chatHistory}
-            className="px-4 bg-purple-600 rounded hover:bg-purple-700"
-          >
-            Get chat history
+            {loadingUpload ? "Uploading..." : "Upload Document"}
           </button>
         </div>
 
+        {/* Processing Button */}
+        <button
+          onClick={agentResult}
+          disabled={loadingAgent}
+          className={`w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-700 transition mb-4 ${
+            loadingAgent ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+        >
+          {loadingAgent ? "Processing Document…" : "Get AI Analysis"}
+        </button>
+
+        {/* History Button */}
+        <button
+          onClick={chatHistory}
+          disabled={loadingHistory}
+          className={`w-full py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition ${
+            loadingHistory ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+        >
+          {loadingHistory ? "Loading history…" : "View Past Analyses"}
+        </button>
+
+        {/* Result Panel */}
+        {result && (
+          <div className="mt-8 p-6 bg-gray-800 rounded-xl border border-gray-700 whitespace-pre-wrap">
+            <h2 className="text-xl font-semibold mb-3 text-purple-300">
+              AI Analysis Result
+            </h2>
+            {result}
+          </div>
+        )}
+
+        {/* History Modal */}
+        {showHistory && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-6">
+            <div className="bg-gray-900 p-6 rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto border border-gray-700">
+              <h2 className="text-xl font-semibold text-purple-300 mb-4">
+                Chat History
+              </h2>
+
+              {history.length === 0 ? (
+                <p className="text-gray-400">No previous analyses found.</p>
+              ) : (
+                history.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="mb-4 p-4 bg-gray-800 rounded-lg border border-gray-700"
+                  >
+                    <div className="text-xs text-gray-400 mb-2">
+                      {item.timestamp}
+                    </div>
+                    <div className="font-bold text-purple-400 mb-1">
+                      {item.file_key}
+                    </div>
+                    <div className="whitespace-pre-wrap">{item.response}</div>
+                  </div>
+                ))
+              )}
+
+              <button
+                className="mt-4 w-full py-2 rounded-lg bg-red-600 hover:bg-red-700"
+                onClick={() => setShowHistory(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Sign Out */}
         <button
           onClick={handleLogout}
-          className="mt-6 text-xs bg-purple-600 px-4 py-2 rounded hover:bg-purple-700 transition"
+          className="mt-6 w-full text-xs bg-red-600 px-4 py-2 rounded hover:bg-red-700 transition"
         >
           Sign Out
         </button>
