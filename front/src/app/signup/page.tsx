@@ -608,23 +608,34 @@ export default function SignupPage() {
                       </AnimatePresence>
 
                       {/* Terms */}
-                      <motion.p
-                        className="text-xs text-slate-500 text-center mt-6"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.6 }}
-                      >
-                        By signing up, you agree to our{" "}
-                        <a href="#" className="text-purple-400 hover:underline">
-                          Terms
-                        </a>{" "}
-                        and{" "}
-                        <a href="#" className="text-purple-400 hover:underline">
-                          Privacy Policy       
-                          
-                        </a>
-                        <a href="/login" className="text-purple-400 hover:underline">Login</a>
-                      </motion.p>
+                      <motion.div
+  className="text-center mt-6 space-y-2"
+  initial={{ opacity: 0 }}
+  animate={{ opacity: 1 }}
+  transition={{ delay: 0.6 }}
+>
+  <p className="text-xs text-slate-500">
+    By signing up, you agree to our{" "}
+    <a href="#" className="text-purple-400 hover:underline">
+      Terms
+    </a>{" "}
+    and{" "}
+    <a href="#" className="text-purple-400 hover:underline">
+      Privacy Policy
+    </a>.
+  </p>
+
+  <p className="text-sm text-slate-300">
+    Already have an account?{" "}
+    <button
+      onClick={() => router.push("/login")}
+      className="text-purple-400 hover:text-purple-300 underline underline-offset-4 transition"
+    >
+      Sign In
+    </button>
+  </p>
+</motion.div>
+
                     </div>
                   </motion.div>
                 )}
