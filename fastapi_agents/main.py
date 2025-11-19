@@ -11,13 +11,29 @@ from fastapi import Depends
 from auth import get_current_user
 from fastapi.middleware.cors import CORSMiddleware
 from database import create_db_and_tables, ChatHistory, User, get_session, SessionDep
+from redis import Redis
+import boto3
+import fitz
+load_dotenv()
+redis_client = Redis(
+    host=os.getenv("REDIS_URL"),
+    port=int(os.getenv("REDIS_PORT")),
+    password=os.getenv("REDIS_PASSWORD"),
+    decode_responses=True
+)
+s3 = boto3.client(
+    's3', 
+    aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"), 
+    aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+    region_name=os.getenv("COGNITO_REGION")
+)
+
 app = FastAPI()
 @app.get("/hello")
 async def hello():
     return {"message": "Hello, World!"}
 app.state.mess = None
 def pubsub_listener():
-  load_dotenv()
   credentials_path= os.getenv("GCP_CREDENTIALS_PATH")
   os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
   subscriber = pubsub_v1.SubscriberClient()
@@ -46,25 +62,40 @@ async def check(user = Depends(get_current_user), session: SessionDep= None):
     payload = json.loads(app.state.mess)
     print("File key: "+ payload["file_key"])
     existing_user = session.get(User, user["email"])
+    bucket = os.getenv("AWS_BUCKET_NAME")
+    obj = s3.get_object(Bucket=bucket, Key=payload["file_key"])
+    content = obj['Body'].read()
+    pdf = fitz.open(stream=content, filetype="pdf")
+    pdf_text = ""
+    for page in pdf:
+        pdf_text += page.get_text()
+    import hashlib
+    content_hash = hashlib.sha256(pdf_text.encode('utf-8')).hexdigest()
+    cached = redis_client.get(content_hash)
+    if cached:
+        print("🚀 Cache HIT:", content_hash)
+        app.state.mess = None
+        return {"response": cached, "cache": True}
+    print("❌ Cache MISS:", content_hash)
     if not existing_user:
         session.add(User(email=user["email"]))
         session.commit()
     query = f""" 
-   You are a Legal Document Intelligence Agent.
+   You are a Legal Document Intelligence Agent. 
+Below is the FULL extracted text of a legal document.
 
 Goals:
-1. Extract and summarize the document using legal_mystic().
-2. If the document references any legal sections (like Section 65 IT Act, Section 8, Article 21, etc) use:
-   - fetch_india_act()
-   - fetch_india_section()
-   - fetch_constitution_article()
-   to retrieve factual text from IndiaCode.
-3. Provide a factual, concise legal context based on retrieved acts/articles.
-4. DO NOT provide legal advice. Only factual interpretation.
-5. Add red flags if the document has potential legal issues.
-6. Add at the end:
-   "Disclaimer: This is an automated analysis, not legal advice."
-   Do this based on the document: "{payload["file_key"]}"
+1. Summarize the document clearly.
+2. Identify referenced Indian legal sections (like IT Act, Constitution).
+3. Provide factual context for these sections.
+4. Highlight legal red flags.
+5. Do NOT provide legal advice.
+6. End with: "Disclaimer: This is an automated analysis, not legal advice."
+
+Extracted document text:
+---------------------------
+{pdf_text}
+---------------------------
 """
     result = agent(query)
     text = result.message["content"][0]["text"]
@@ -73,6 +104,7 @@ Goals:
         file_key = payload["file_key"], 
         response = text
     )
+    redis_client.set(content_hash, text, ex=60 * 60 * 24)
     session.add(new_history)
     session.commit()
     session.refresh(new_history)

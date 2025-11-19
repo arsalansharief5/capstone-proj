@@ -3,8 +3,6 @@ from strands.models.gemini import GeminiModel
 import requests
 import os
 from dotenv import load_dotenv
-import boto3
-import fitz
 load_dotenv()
 model = GeminiModel(
     client_args={
@@ -18,24 +16,7 @@ model = GeminiModel(
         "top_k": 40
     }
 )
-s3 = boto3.client(
-    's3', 
-    aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"), 
-    aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
-    region_name=os.getenv("COGNITO_REGION")
-)
 
-@tool
-def legal_mystic(file_key: str):
-    """Fetch the document from S3."""
-    bucket = os.getenv("AWS_BUCKET_NAME")
-    obj = s3.get_object(Bucket=bucket, Key=file_key)
-    content = obj['Body'].read()
-    pdf = fitz.open(stream=content, filetype="pdf")
-    text = ""
-    for page in pdf:
-        text += page.get_text()
-    return text
 
 @tool
 def fetch_india_act(act_code: str):
@@ -58,4 +39,4 @@ def fetch_constitution_article(article_number: str):
     r = requests.get(url)
     return r.json() if r.headers.get("content-type") == "application/json" else r.text
 
-agent = Agent(model=model, tools=[legal_mystic, fetch_india_act, fetch_india_section, fetch_constitution_article])
+agent = Agent(model=model, tools=[fetch_india_act, fetch_india_section, fetch_constitution_article])
