@@ -16,9 +16,13 @@ s3 = boto3.client(
     aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID"),
     aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY"),
 )
+RUNNING_IN_GCP = os.getenv("RUNNING_IN_GCP") == "1"
 bucket_name = os.getenv("S3_BUCKET_NAME")
-credentials_path= os.getenv("GCP_CREDENTIALS_PATH")
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
+if not RUNNING_IN_GCP:
+    credentials_path= os.getenv("GCP_CREDENTIALS_PATH")
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
+else:
+    print("Running in GCP environment, using default credentials.")
 publisher = pubsub_v1.PublisherClient()
 topic_path= os.getenv("TOPIC_PATH")
 @api.post("/secure-hello", auth=CustomAuth())

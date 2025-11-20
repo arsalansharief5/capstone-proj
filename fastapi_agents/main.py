@@ -33,9 +33,13 @@ app = FastAPI()
 async def hello():
     return {"message": "Hello, World!"}
 app.state.mess = None
+RUNNING_IN_GCP = os.getenv("RUNNING_IN_GCP") == "1"
 def pubsub_listener():
-  credentials_path= os.getenv("GCP_CREDENTIALS_PATH")
-  os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
+  if not RUNNING_IN_GCP:
+      credentials_path= os.getenv("GCP_CREDENTIALS_PATH")
+      os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
+  else:
+      print("Running in GCP environment, using default credentials.")
   subscriber = pubsub_v1.SubscriberClient()
   subscription_path=os.getenv("SUBSCRIBER_PATH")
   def callback(message: pubsub_v1.subscriber.message.Message):
