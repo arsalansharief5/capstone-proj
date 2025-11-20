@@ -4,6 +4,23 @@ import { useState } from "react";
 import { fetchAuthSession, signOut } from "aws-amplify/auth";
 import { useRouter } from "next/navigation";
 
+/* ---------------------------------------------
+   Reusable Loader Overlay Component
+---------------------------------------------- */
+function LoaderOverlay({ message }: { message: string }) {
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="flex flex-col items-center gap-4 p-8 bg-gray-900 rounded-2xl border border-gray-700 shadow-xl">
+        <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-lg text-gray-300 animate-pulse">{message}</p>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------
+   Main Component
+---------------------------------------------- */
 export default function ChatPage() {
   const router = useRouter();
 
@@ -16,12 +33,13 @@ export default function ChatPage() {
   const [history, setHistory] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
 
+  /* -------------------- Sign Out -------------------- */
   const handleLogout = async () => {
     await signOut();
     router.push("/");
   };
 
-  // ---------------------------- Upload File ----------------------------
+  /* -------------------- Upload File -------------------- */
   const uploadVideo = async () => {
     if (!file) {
       alert("Please choose a file first.");
@@ -35,21 +53,24 @@ export default function ChatPage() {
       const session = await fetchAuthSession();
       const token = session.tokens?.idToken?.toString();
 
-      const res = await fetch("https://capstone-django-777268942678.asia-south1.run.app/api/get-upload-url", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          file_name: file.name,
-          content_type: file.type,
-        }),
-      });
+      const res = await fetch(
+        "https://capstone-django-777268942678.asia-south1.run.app/api/get-upload-url",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            file_name: file.name,
+            content_type: file.type,
+          }),
+        }
+      );
 
       const { upload_url, file_key } = await res.json();
 
-      // Upload the actual file
+      // Upload the actual file to S3
       await fetch(upload_url, {
         method: "PUT",
         headers: {
@@ -59,7 +80,6 @@ export default function ChatPage() {
       });
 
       alert("Uploaded successfully!");
-
     } catch (err) {
       alert("Error: " + err);
     } finally {
@@ -67,7 +87,7 @@ export default function ChatPage() {
     }
   };
 
-  // ---------------------------- Agent Result ----------------------------
+  /* -------------------- Fetch AI Agent Result -------------------- */
   const agentResult = async () => {
     try {
       setLoadingAgent(true);
@@ -76,13 +96,16 @@ export default function ChatPage() {
       const session = await fetchAuthSession();
       const token = session.tokens?.idToken?.toString();
 
-      const res = await fetch("https://capstone-proj-777268942678.asia-south1.run.app/status", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await fetch(
+        "https://capstone-proj-777268942678.asia-south1.run.app/status",
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       const data = await res.json();
       setResult(data.response);
@@ -93,7 +116,7 @@ export default function ChatPage() {
     }
   };
 
-  // ---------------------------- Chat History ----------------------------
+  /* -------------------- Fetch Chat History -------------------- */
   const chatHistory = async () => {
     try {
       setLoadingHistory(true);
@@ -101,18 +124,20 @@ export default function ChatPage() {
       const session = await fetchAuthSession();
       const token = session.tokens?.idToken?.toString();
 
-      const res = await fetch("https://capstone-django-777268942678.asia-south1.run.app/api/chat-history", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await fetch(
+        "https://capstone-django-777268942678.asia-south1.run.app/api/chat-history",
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       const data = await res.json();
       setHistory(data);
       setShowHistory(true);
-
     } catch (err) {
       console.log(err);
     } finally {
@@ -120,9 +145,16 @@ export default function ChatPage() {
     }
   };
 
+  /* -------------------- UI -------------------- */
   return (
     <div className="min-h-screen bg-black text-white flex items-center justify-center px-6 py-10">
-      <main className="w-full max-w-3xl bg-gray-900 rounded-2xl p-10 shadow-xl border border-gray-800">
+
+      {/* Global Loaders */}
+      {loadingUpload && <LoaderOverlay message="Uploading document…" />}
+      {loadingAgent && <LoaderOverlay message="Analyzing with AI…" />}
+      {loadingHistory && <LoaderOverlay message="Loading past analyses…" />}
+
+      <main className="w-full max-w-3xl bg-gray-900 rounded-2xl p-10 shadow-xl border border-gray-800 relative">
         <h1 className="text-3xl font-bold mb-6 text-purple-400">
           Legal Document Analyzer ⚖️
         </h1>
@@ -147,7 +179,7 @@ export default function ChatPage() {
           </button>
         </div>
 
-        {/* Processing Button */}
+        {/* Process Button */}
         <button
           onClick={agentResult}
           disabled={loadingAgent}
@@ -155,7 +187,7 @@ export default function ChatPage() {
             loadingAgent ? "opacity-50 cursor-not-allowed" : ""
           }`}
         >
-          {loadingAgent ? "Processing Document…" : "Get AI Analysis"}
+          {loadingAgent ? "Processing…" : "Get AI Analysis"}
         </button>
 
         {/* History Button */}
@@ -166,10 +198,10 @@ export default function ChatPage() {
             loadingHistory ? "opacity-50 cursor-not-allowed" : ""
           }`}
         >
-          {loadingHistory ? "Loading history…" : "View Past Analyses"}
+          {loadingHistory ? "Loading…" : "View Past Analyses"}
         </button>
 
-        {/* Result Panel */}
+        {/* AI Result */}
         {result && (
           <div className="mt-8 p-6 bg-gray-800 rounded-xl border border-gray-700 whitespace-pre-wrap">
             <h2 className="text-xl font-semibold mb-3 text-purple-300">
@@ -181,7 +213,7 @@ export default function ChatPage() {
 
         {/* History Modal */}
         {showHistory && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-6">
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-6 z-50">
             <div className="bg-gray-900 p-6 rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto border border-gray-700">
               <h2 className="text-xl font-semibold text-purple-300 mb-4">
                 Chat History
