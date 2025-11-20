@@ -76,7 +76,7 @@ export default function ChatPage() {
       const session = await fetchAuthSession();
       const token = session.tokens?.idToken?.toString();
 
-      const res = await fetch("http://localhost:8080/status", {
+      const res = await fetch("https://capstone-proj-777268942678.asia-south1.run.app/status", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
