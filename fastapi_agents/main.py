@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from google.cloud import pubsub_v1
 import threading
 import json
-from agents.agent import agent
+from agents.agent import get_agent
 from fastapi import Depends
 from auth import get_current_user
 from fastapi.middleware.cors import CORSMiddleware
@@ -92,7 +92,7 @@ Chunk:
 {chunk}
 ---------------------
 """
-    res = agent(prompt)
+    res = get_agent()(prompt)
     return res.message["content"][0]["text"].strip()
 
 
