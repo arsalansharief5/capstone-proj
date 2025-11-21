@@ -4,21 +4,17 @@ from dotenv import load_dotenv
 from google.cloud import pubsub_v1
 import threading
 import json
-from concurrent.futures import TimeoutError
 from agents.agent import agent
-from fastapi import Request as Req
 from fastapi import Depends
 from auth import get_current_user
 from fastapi.middleware.cors import CORSMiddleware
-from database import create_db_and_tables, ChatHistory, User, get_session, SessionDep
+from database import create_db_and_tables, ChatHistory, User, SessionDep
 from redis import Redis
 import boto3
 import fitz
+import hashlib
 
-# Load .env (Docker environment variables are loaded automatically)
 load_dotenv()
-# credentials_path="C:\\Users\\HP\\Downloads\\capstone-proj\\django_back\\backapp\\keys.json"
-# os.environ['GOOGLE_APPLICATION_CREDENTIALS']= credentials_path
 
 # -----------------------------------------
 # Redis + S3 Setup
@@ -41,11 +37,6 @@ s3 = boto3.client(
 # FastAPI App
 # -----------------------------------------
 app = FastAPI()
-
-@app.get("/hello")
-async def hello():
-    return {"message": "Hello, World!"}
-
 app.state.mess = None
 
 
@@ -77,35 +68,81 @@ def launch_subscriber():
     thread.start()
     print("🎉 Pub/Sub listener running in background thread!")
 
-def truncate(text, max_chars=5000):
-    return text[:max_chars] + "..." if len(text) > max_chars else text
+
+# -----------------------------------------
+# Helper: Chunk Text
+# -----------------------------------------
+def chunk_text(text, chunk_size=4000):
+    """Split text into safe LLM-sized chunks."""
+    return [text[i:i + chunk_size] for i in range(0, len(text), chunk_size)]
+
+
+# -----------------------------------------
+# ANALYSIS PIPELINE (CHUNKED)
+# -----------------------------------------
+def summarize_chunk(chunk: str):
+    """Summaries each chunk via LLM."""
+    prompt = f"""
+You are a Legal Document Chunk Summarizer.
+Summarize the following part of a legal document factually,
+without legal advice, no opinions.
+
+Chunk:
+---------------------
+{chunk}
+---------------------
+"""
+    res = agent(prompt)
+    return res.message["content"][0]["text"].strip()
+
+
+def final_legal_analysis(chunk_summaries):
+    """Runs the final combined analysis."""
+    prompt = f"""
+You are a Legal Document Intelligence Agent.
+
+You will receive summarized chunks of a long legal document.
+Using ONLY the information in those summaries, generate:
+
+1. A complete overall summary
+2. Identified Indian legal sections (IT Act, IPC, Constitution etc.)
+3. Factual context/explanation for each section
+4. Highlight red flags (ambiguities, missing data, contradictions)
+5. Do NOT provide legal advice
+6. End with: "Disclaimer: This is an automated analysis, not legal advice."
+
+Chunk Summaries:
+-------------------------
+{json.dumps(chunk_summaries, indent=2)}
+-------------------------
+"""
+    res = agent(prompt)
+    return res.message["content"][0]["text"].strip()
+
 
 # -----------------------------------------
 # Status Route
 # -----------------------------------------
 @app.get("/status")
-async def check(user=Depends(get_current_user), session: SessionDep=None):
+async def check(user=Depends(get_current_user), session: SessionDep = None):
+
     print("RAW:", repr(app.state.mess))
-
     payload = json.loads(app.state.mess)
-    print("File key:", payload["file_key"])
+    file_key = payload["file_key"]
 
-    existing_user = session.get(User, user["email"])
+    # S3 Fetch
     bucket = os.getenv("AWS_BUCKET_NAME")
-    obj = s3.get_object(Bucket=bucket, Key=payload["file_key"])
-
+    obj = s3.get_object(Bucket=bucket, Key=file_key)
     content = obj["Body"].read()
+
+    # Extract Text
     pdf = fitz.open(stream=content, filetype="pdf")
+    pdf_text = "".join(page.get_text() for page in pdf)
 
-    pdf_text = ""
-    for page in pdf:
-        pdf_text += page.get_text()
-    short_text = truncate(pdf_text)
-
-    import hashlib
+    # Cache Key
     content_hash = hashlib.sha256(pdf_text.encode("utf-8")).hexdigest()
-
     cached = redis_client.get(content_hash)
+
     if cached:
         print("🚀 Cache HIT:", content_hash)
         app.state.mess = None
@@ -113,44 +150,45 @@ async def check(user=Depends(get_current_user), session: SessionDep=None):
 
     print("❌ Cache MISS:", content_hash)
 
+    # Create user if needed
+    existing_user = session.get(User, user["email"])
     if not existing_user:
         session.add(User(email=user["email"]))
         session.commit()
 
-    query = f""" 
-   You are a Legal Document Intelligence Agent. 
-Below is the FULL extracted text of a legal document.
+    # -----------------------------
+    # CHUNK PIPELINE
+    # -----------------------------
+    print("📌 Splitting PDF into chunks...")
+    chunks = chunk_text(pdf_text)
 
-Goals:
-1. Summarize the document clearly.
-2. Identify referenced Indian legal sections (like IT Act, Constitution).
-3. Provide factual context for these sections.
-4. Highlight legal red flags.
-5. Do NOT provide legal advice.
-6. End with: "Disclaimer: This is an automated analysis, not legal advice."
+    print(f"📄 Total Chunks: {len(chunks)}")
 
-Extracted document text:
----------------------------
-{short_text}
----------------------------
-"""
+    chunk_summaries = []
+    for index, chunk in enumerate(chunks):
+        print(f"🔹 Summarizing Chunk {index + 1}/{len(chunks)}...")
+        summary = summarize_chunk(chunk)
+        chunk_summaries.append(summary)
 
-    result = agent(query)
-    text = result.message["content"][0]["text"]
+    print("🔍 Running Final Legal Analysis...")
+    final_output = final_legal_analysis(chunk_summaries)
 
+    # Save to Redis
+    redis_client.set(content_hash, final_output, ex=60 * 60 * 24)
+
+    # Save in DB
     new_history = ChatHistory(
         user_email=user["email"],
-        file_key=payload["file_key"],
-        response=text
+        file_key=file_key,
+        response=final_output
     )
-
-    redis_client.set(content_hash, text, ex=60 * 60 * 24)
     session.add(new_history)
     session.commit()
-    session.refresh(new_history)
 
+    # Reset pubsub message
     app.state.mess = None
-    return {"response": text}
+
+    return {"response": final_output}
 
 
 # -----------------------------------------
@@ -166,4 +204,3 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app = app 
