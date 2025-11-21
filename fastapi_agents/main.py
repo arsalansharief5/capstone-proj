@@ -77,6 +77,8 @@ def launch_subscriber():
     thread.start()
     print("🎉 Pub/Sub listener running in background thread!")
 
+def truncate(text, max_chars=5000):
+    return text[:max_chars] + "..." if len(text) > max_chars else text
 
 # -----------------------------------------
 # Status Route
@@ -98,6 +100,7 @@ async def check(user=Depends(get_current_user), session: SessionDep=None):
     pdf_text = ""
     for page in pdf:
         pdf_text += page.get_text()
+    short_text = truncate(pdf_text)
 
     import hashlib
     content_hash = hashlib.sha256(pdf_text.encode("utf-8")).hexdigest()
@@ -128,7 +131,7 @@ Goals:
 
 Extracted document text:
 ---------------------------
-{pdf_text}
+{short_text}
 ---------------------------
 """
 
