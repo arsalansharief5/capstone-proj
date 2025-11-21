@@ -110,7 +110,4 @@ def get_agent():
             fetch_india_section,
             fetch_constitution_article
         ],
-        memory=None,                 # <-- DISABLE MEMORY
-        max_tokens=4096,             # <-- Prevent runaway event loop
-        reset_context=True           # <-- FORCE STATELESS BEHAVIOR
     )
