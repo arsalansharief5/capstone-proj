@@ -26,14 +26,28 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-_l9l62$=oukq7c#-f^@%w(q24g%9d2i)*+$-w*@h#hlg#i3wi="
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ["*"]
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "https://capstone-proj-green.vercel.app", 
+    "https://capstone-django-777268942678.asia-south1.run.app", 
+    "https://capstone-proj-777268942678.asia-south1.run.app"
+]
+CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = [
     "https://*.app.github.dev",
-]
+    "https://capstone-proj-green.vercel.app",
+    "https://capstone-django-777268942678.asia-south1.run.app", 
+    "https://capstone-proj-777268942678.asia-south1.run.app"
 
+]
+SESSION_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SECURE = True
 # Application definition
 
 INSTALLED_APPS = [

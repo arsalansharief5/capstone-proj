@@ -116,7 +116,7 @@ Chunk Summaries:
 {json.dumps(chunk_summaries, indent=2)}
 -------------------------
 """
-    res = agent(prompt)
+    res = get_agent()(prompt)
     return res.message["content"][0]["text"].strip()
 
 
