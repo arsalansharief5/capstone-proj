@@ -16,9 +16,9 @@ import hashlib
 
 load_dotenv()
 
-# -----------------------------------------
+# -------------------------------------------------------
 # Redis + S3 Setup
-# -----------------------------------------
+# -------------------------------------------------------
 redis_client = Redis(
     host=os.getenv("REDIS_URL"),
     port=int(os.getenv("REDIS_PORT")),
@@ -33,16 +33,16 @@ s3 = boto3.client(
     region_name=os.getenv("COGNITO_REGION")
 )
 
-# -----------------------------------------
+# -------------------------------------------------------
 # FastAPI App
-# -----------------------------------------
+# -------------------------------------------------------
 app = FastAPI()
 app.state.mess = None
 
 
-# -----------------------------------------
+# -------------------------------------------------------
 # Pub/Sub Listener
-# -----------------------------------------
+# -------------------------------------------------------
 def pubsub_listener():
     subscriber = pubsub_v1.SubscriberClient()
     subscription_path = os.getenv("SUBSCRIBER_PATH")
@@ -69,23 +69,58 @@ def launch_subscriber():
     print("🎉 Pub/Sub listener running in background thread!")
 
 
-# -----------------------------------------
-# Helper: Chunk Text
-# -----------------------------------------
+# -------------------------------------------------------
+# PDF Extraction — BULLETPROOF VERSION
+# -------------------------------------------------------
+def extract_pdf_text(pdf):
+    """Extract text from PDF with fallback for legal/complex PDFs."""
+
+    final_text = ""
+
+    for page in pdf:
+
+        # Primary extraction
+        text = page.get_text("text").strip()
+
+        # Fall back to blocks if empty
+        if not text:
+            blocks = page.get_text("blocks")
+            if isinstance(blocks, list):
+                text = "\n".join(
+                    blk[4] for blk in blocks
+                    if isinstance(blk, list) and len(blk) > 4
+                ).strip()
+
+        # Final fallback: raw dict extraction
+        if not text:
+            raw = page.get_text("rawdict")
+            if "blocks" in raw:
+                text = "\n".join(
+                    blk.get("text", "")
+                    for blk in raw["blocks"]
+                    if blk.get("type") == 0
+                ).strip()
+
+        final_text += text + "\n"
+
+    return final_text
+
+
+# -------------------------------------------------------
+# Text Chunker
+# -------------------------------------------------------
 def chunk_text(text, chunk_size=4000):
-    """Split text into safe LLM-sized chunks."""
     return [text[i:i + chunk_size] for i in range(0, len(text), chunk_size)]
 
 
-# -----------------------------------------
-# ANALYSIS PIPELINE (CHUNKED)
-# -----------------------------------------
+# -------------------------------------------------------
+# Chunk Summaries
+# -------------------------------------------------------
 def summarize_chunk(chunk: str):
-    """Summaries each chunk via LLM."""
     prompt = f"""
 You are a Legal Document Chunk Summarizer.
 Summarize the following part of a legal document factually,
-without legal advice, no opinions.
+without legal advice or opinions.
 
 Chunk:
 ---------------------
@@ -96,8 +131,10 @@ Chunk:
     return res.message["content"][0]["text"].strip()
 
 
+# -------------------------------------------------------
+# Final Legal Analysis
+# -------------------------------------------------------
 def final_legal_analysis(chunk_summaries):
-    """Runs the final combined analysis."""
     prompt = f"""
 You are a Legal Document Intelligence Agent.
 
@@ -120,26 +157,36 @@ Chunk Summaries:
     return res.message["content"][0]["text"].strip()
 
 
-# -----------------------------------------
-# Status Route
-# -----------------------------------------
+# -------------------------------------------------------
+# /status Route — MAIN PIPELINE
+# -------------------------------------------------------
 @app.get("/status")
 async def check(user=Depends(get_current_user), session: SessionDep = None):
 
     print("RAW:", repr(app.state.mess))
+
     payload = json.loads(app.state.mess)
     file_key = payload["file_key"]
 
-    # S3 Fetch
+    # Fetch from S3
     bucket = os.getenv("AWS_BUCKET_NAME")
     obj = s3.get_object(Bucket=bucket, Key=file_key)
     content = obj["Body"].read()
 
-    # Extract Text
-    pdf = fitz.open(stream=content, filetype="pdf")
-    pdf_text = "".join(page.get_text() for page in pdf)
+    # Try opening PDF
+    try:
+        pdf = fitz.open(stream=content, filetype="pdf")
+    except Exception as e:
+        return {"error": f"Failed to open PDF: {str(e)}"}
 
-    # Cache Key
+    # Extract text
+    pdf_text = extract_pdf_text(pdf)
+
+    # Detect scanned / empty PDF
+    if len(pdf_text.strip()) < 50:
+        return {"error": "The uploaded document contains no readable text."}
+
+    # Caching
     content_hash = hashlib.sha256(pdf_text.encode("utf-8")).hexdigest()
     cached = redis_client.get(content_hash)
 
@@ -150,15 +197,13 @@ async def check(user=Depends(get_current_user), session: SessionDep = None):
 
     print("❌ Cache MISS:", content_hash)
 
-    # Create user if needed
+    # Create user if new
     existing_user = session.get(User, user["email"])
     if not existing_user:
         session.add(User(email=user["email"]))
         session.commit()
 
-    # -----------------------------
-    # CHUNK PIPELINE
-    # -----------------------------
+    # Chunk & summarize
     print("📌 Splitting PDF into chunks...")
     chunks = chunk_text(pdf_text)
 
@@ -176,7 +221,7 @@ async def check(user=Depends(get_current_user), session: SessionDep = None):
     # Save to Redis
     redis_client.set(content_hash, final_output, ex=60 * 60 * 24)
 
-    # Save in DB
+    # Save to DB
     new_history = ChatHistory(
         user_email=user["email"],
         file_key=file_key,
@@ -185,15 +230,15 @@ async def check(user=Depends(get_current_user), session: SessionDep = None):
     session.add(new_history)
     session.commit()
 
-    # Reset pubsub message
+    # Reset message
     app.state.mess = None
 
     return {"response": final_output}
 
 
-# -----------------------------------------
+# -------------------------------------------------------
 # CORS
-# -----------------------------------------
+# -------------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
