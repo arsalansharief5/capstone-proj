@@ -100,5 +100,12 @@ Provide:
 1. What you changed
 2. Why you changed it
 3. Screenshots/Testing video if applicable
-
 Submit the PR ✔️
+
+### 7. Additional Notes
+If you're unsure where to start, check the Project Improvements section above or open an issue.
+For major changes (architecture-level or multi-service changes), please open an issue to discuss before working on it.
+Be respectful and constructive — we’re all here to build something amazing.
+Anything else? Feel free to contact me 👍😊: https://www.linkedin.com/in/govind-sys-1061a2314
+
+## Happy contributing 🚀
