@@ -5,12 +5,6 @@ Legal Summarizer is a smart AI that takes your legal agreements, scoops out Arti
 ### Architecture Diagram of the project (Current)
 <img width="1394" height="1074" alt="image" src="https://github.com/user-attachments/assets/61afef49-3524-4b84-b712-f0b2bb6b176c" />
 
-
-
-
-
-
-
 ### Tech Stack
 1. Frontend : NextJS
 2. Backend Services : Django Ninja, fastAPI
@@ -21,10 +15,63 @@ Legal Summarizer is a smart AI that takes your legal agreements, scoops out Arti
 7. AI Agent Layer : Strands Framework
 8. Containerization : Docker
 9. Deployments : GCP Cloud Run, Vercel
-#### Project Improvements:
+   
+### Running Locally
+1. Clone the repository
+   ```bash
+   git clone https://github.com/Gov-10/capstone-proj.git
+   cd capstone-proj
+   ```
+2. Create a virtual environment (windows)
+   ```bash
+   python -m venv venv
+   ./venv/Scripts/activate
+   ```
+  (If using Linux)
+  ```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+3. Install requirements (please ignore the requirements.txt in the root directory)
+   (for Django Ninja)
+   ```bash
+   cd django_back
+   pip install -r requirements.txt
+   ```
+   (for fastAPI)
+   ```bash
+   cd fastapi_agents
+   pip install -r requirements.txt
+   ```
+   (for nextJS frontend)
+   ```bash
+   cd front
+   npm i
+   ```
+4. Add in environment variables accordingly
+5. Spin up servers
+   (Django Ninja)
+   ```bash
+   cd django_back
+   python manage.py runserver
+   ```
+   (FastAPI)
+   ```bash
+   cd fastapi_agents
+   daphne -p 8080 main:app --reload
+   ```
+   (nextJS)
+   ```bash
+   cd front
+   npm run dev
+   ```
+   
+### Project Improvements:
 1. Cloudflare workers migration (underway)
 2. Extending supported file types (underway)
 3. OCR Fallback (via pytesseract) for extracting text from image based PDFs
+4. Migrating to LangChain/LangGraph from Strands framework
+5. Migrate to daphne server from Django's default WSGI server
 
 ## How to contribute
 ### 1. Fork the repository
