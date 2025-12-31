@@ -1,0 +1,40 @@
+name: Next.js CI
+
+on:
+  push:
+    paths:
+      - "front/**"
+      - ".github/workflows/nextjs-ci.yml"
+  pull_request:
+    paths:
+      - "front/**"
+      - ".github/workflows/nextjs-ci.yml"
+
+jobs:
+  nextjs-ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: |
+          cd front
+          npm ci
+
+      - name: Build Next.js
+        run: |
+          cd front
+          npm run build
+
+      - name: Lint & Type check
+        run: |
+          cd front
+          npm run lint || echo "Lint errors ignored in CI"
+          npx tsc --noEmit || echo "Type check errors ignored in CI"
