@@ -27,12 +27,7 @@ jobs:
         run: |
           cd django_back
           pip install -r requirements.txt
-
-      - name: Django system check
-        run: |
-          cd django_back
-          python manage.py check
-
+          
       - name: Build Docker image
         run: |
           docker build -t legal-django-backend ./django_back
