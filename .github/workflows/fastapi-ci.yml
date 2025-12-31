@@ -1,0 +1,34 @@
+name: FastAPI CI
+
+on:
+  push:
+    paths:
+      - "fastapi_agents/**"
+      - ".github/workflows/fastapi-ci.yml"
+  pull_request:
+    paths:
+      - "fastapi_agents/**"
+      - ".github/workflows/fastapi-ci.yml"
+
+jobs:
+  fastapi-ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          cd fastapi_agents
+          pip install -r requirements.txt
+
+      - name: FastAPI import check
+        run: |
+          cd fastapi_agents
+          python -c "import main"
