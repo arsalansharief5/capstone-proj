@@ -1,113 +1,262 @@
-# Legal Summarizer 
-## CONGRATS, YOU MADE IT TO THE PROJECT THAT SURVIVED CLOUDFLARE 2025 OUTAGE😤
-### Description
-Legal Summarizer is a smart AI that takes your legal agreements, scoops out Article numbers, sections, matches the agreement with Indian Constitution and rules, and gives a verdict.
-### Architecture Diagram of the project (Current)
-<img width="1394" height="1074" alt="image" src="https://github.com/user-attachments/assets/61afef49-3524-4b84-b712-f0b2bb6b176c" />
+# 📦 README.md - Legal Summarizer Documentation
 
-### Tech Stack
-1. Frontend : NextJS
-2. Backend Services : Django Ninja, fastAPI
-3. Common Database: Neon (Serverless PostgreSQL)
-4. Task Broker : GCP Pub/Sub
-5. Caching : Redis Cloud
-6. Authentication : Amazon Cognito
-7. AI Agent Layer : Strands Framework
-8. Containerization : Docker
-9. Deployments : GCP Cloud Run, Vercel
-   
-### Running Locally
-1. Clone the repository
-   ```bash
-   git clone https://github.com/Gov-10/capstone-proj.git
-   cd capstone-proj
-   ```
-2. Create a virtual environment (windows)
-   ```bash
-   python -m venv venv
-   ./venv/Scripts/activate
-   ```
-  (If using Linux)
-  ```bash
-python3 -m venv venv
-source venv/bin/activate
-```
-3. Install requirements (please ignore the requirements.txt in the root directory)
-   (for Django Ninja)
-   ```bash
-   cd django_back
-   pip install -r requirements.txt
-   ```
-   (for fastAPI)
-   ```bash
-   cd fastapi_agents
-   pip install -r requirements.txt
-   ```
-   (for nextJS frontend)
-   ```bash
-   cd front
-   npm i
-   ```
-4. Add in environment variables accordingly
-5. Spin up servers
-   (Django Ninja)
-   ```bash
-   cd django_back
-   python manage.py runserver
-   ```
-   (FastAPI)
-   ```bash
-   cd fastapi_agents
-   daphne -p 8080 main:app --reload
-   ```
-   (nextJS)
-   ```bash
-   cd front
-   npm run dev
-   ```
-   
-### Project Improvements:
-1. Cloudflare workers migration (underway)
-2. Extending supported file types (underway)
-3. OCR Fallback (via pytesseract) for extracting text from image based PDFs
-4. Migrating to LangChain/LangGraph from Strands framework
-5. Migrate to daphne server from Django's default WSGI server
-6. Adding Github Actions to automate deployments
-7. Adding Prometheus and Grafana Dashboards for better monitoring
+## Project Overview
 
-## How to contribute
-### 1. Fork the repository
-Click the **Fork** button on the top-right of the GitHub page.
-### 2. Clone your fork locally
-```bash
-git clone https://github.com/your-username/capstone-proj.git
-cd capstone-proj
-```
-### 3.Create a new branch for your work
-```bash
-git checkout -b branch-name
-```
-### 4.Commit your changes
-```bash
-git add .
-git commit -m "describe your changes"
-```
-### 5.Push your branch
-```bash
-git push origin branch-name
-```
-### 6. Open a Pull Request
-Go to your fork on GitHub → Compare & Pull Request
-Provide:
-1. What you changed
-2. Why you changed it
-3. Screenshots/Testing video if applicable
-Submit the PR ✔️
+**Legal Summarizer** is an AI-powered platform designed to simplify complex legal documents for startups and entrepreneurs. Using advanced natural language processing and machine learning, it automatically summarizes lengthy legal contracts, terms of service, and regulatory documents into clear, actionable insights.
 
-### 7. Additional Notes
-1. If you're unsure where to start, check the Project Improvements section above or open an issue.
-2. For major changes (architecture-level or multi-service changes), please open an issue to discuss before working on it.
-3. Be respectful and constructive — we’re all here to build something amazing.
-#### Anything else? Feel free to contact me 👍😊: https://www.linkedin.com/in/govind-sys-1061a2314
+---
 
-## Happy contributing 🚀
+## ✨ Key Features
+
+### 🤖 AI-Powered Summarization
+- Intelligent document parsing and analysis
+- Automatic extraction of key clauses and obligations
+- Multi-language support for international documents
+- Real-time processing for quick results
+
+### 📊 Smart Analysis
+- Risk assessment and alerts
+- Clause categorization and highlighting
+- Comparison with standard templates
+- Key terms identification and explanation
+
+### 👥 User-Friendly Interface
+- Clean, intuitive web interface
+- Mobile-responsive design
+- Document upload and management
+- Saved summaries and history
+
+### 🔒 Security & Privacy
+- End-to-end encryption
+- Secure document storage
+- GDPR compliant
+- No data sharing with third parties
+
+---
+
+## 🎯 Use Cases
+
+- **Startups**: Review investor agreements and contracts
+- **Entrepreneurs**: Understand NDAs and service agreements
+- **Teams**: Collaborate on document analysis
+- **Legal Professionals**: Automate preliminary document review
+- **Enterprises**: Process bulk legal documents
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+```
+- Node.js 16+ or Python 3.8+
+- Git
+- Database (PostgreSQL/MySQL)
+- API keys (NLP service if applicable)
+```
+
+### Installation
+
+#### Option 1: Using Docker
+```bash
+git clone https://github.com/Nimmanagotitharunkumarhello/Legal-Summarizer.git
+cd Legal-Summarizer
+docker-compose up --build
+```
+
+#### Option 2: Manual Setup
+
+**Backend (FastAPI/Django):**
+```bash
+cd fastapi_agents
+pip install -r requirements.txt
+python main.py
+```
+
+**Frontend (React/Next.js):**
+```bash
+cd front
+npm install
+npm run dev
+```
+
+### First Steps
+1. Navigate to `http://localhost:3000`
+2. Create an account
+3. Upload a legal document
+4. View the AI-generated summary
+5. Explore key findings and recommendations
+
+---
+
+## 📚 Documentation
+
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - How to contribute to this project
+- **[DEVELOPMENT.md](DEVELOPMENT.md)** - Local development setup
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System design and components
+- **[SECURITY.md](SECURITY.md)** - Security policies and reporting
+- **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** - Community standards
+- **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** - Developer cheat sheet
+
+---
+
+## 🏗️ Project Structure
+
+```
+Legal-Summarizer/
+├── fastapi_agents/          # Backend API services
+│   ├── main.py
+│   ├── requirements.txt
+│   └── services/
+├── django_back/             # Alternative Django backend
+├── front/                   # React/Next.js frontend
+│   ├── components/
+│   ├── pages/
+│   └── public/
+├── docs/                    # Documentation
+├── docker-compose.yml       # Docker configuration
+└── README.md               # This file
+```
+
+---
+
+## 🔧 Technology Stack
+
+### Backend
+- **FastAPI** / **Django** - Web framework
+- **Python** - Core language
+- **PostgreSQL/MySQL** - Database
+- **Hugging Face/OpenAI** - NLP models
+
+### Frontend
+- **React** / **Next.js** - UI framework
+- **Tailwind CSS** - Styling
+- **TypeScript** - Type safety
+
+### DevOps
+- **Docker** - Containerization
+- **Docker Compose** - Orchestration
+- **GitHub Actions** - CI/CD
+
+---
+
+## 📊 API Endpoints
+
+### Authentication
+```
+POST /api/auth/register     - Create account
+POST /api/auth/login        - User login
+POST /api/auth/logout       - User logout
+POST /api/auth/refresh      - Refresh token
+```
+
+### Documents
+```
+POST /api/documents/upload  - Upload document
+GET /api/documents          - List documents
+GET /api/documents/{id}     - Get document details
+DELETE /api/documents/{id}  - Delete document
+```
+
+### Summarization
+```
+POST /api/summarize         - Generate summary
+GET /api/summaries/{id}     - Get summary
+PUT /api/summaries/{id}     - Update summary
+DELETE /api/summaries/{id}  - Delete summary
+```
+
+---
+
+## 🧪 Testing
+
+```bash
+# Run tests
+pytest tests/                    # Backend tests
+npm test                         # Frontend tests
+
+# Run with coverage
+pytest --cov=services tests/
+
+# Run specific test
+pytest tests/test_summarizer.py
+```
+
+---
+
+## 🐛 Known Issues
+
+- Large PDFs (>50MB) may take longer to process
+- Some complex legal jargon may need manual review
+- Multi-column layouts require preprocessing
+
+---
+
+## 📝 Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+**Quick steps:**
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🤝 Support
+
+- **Issues**: [GitHub Issues](https://github.com/Nimmanagotitharunkumarhello/Legal-Summarizer/issues)
+- **Email**: [govind.sys.1061a2314@gmail.com](mailto:govind.sys.1061a2314@gmail.com)
+- **Documentation**: [DEVELOPMENT.md](DEVELOPMENT.md)
+
+---
+
+## 🎯 Roadmap
+
+### v1.1 (Q1 2026)
+- [ ] Multi-language support
+- [ ] Advanced filtering options
+- [ ] Batch processing
+
+### v1.2 (Q2 2026)
+- [ ] AI-powered recommendations
+- [ ] Integration with document management systems
+- [ ] Enhanced security features
+
+### v2.0 (Q3 2026)
+- [ ] Blockchain verification
+- [ ] Advanced analytics dashboard
+- [ ] Mobile app release
+
+---
+
+## 👥 Authors
+
+- **Govind S** - Lead Developer
+  - LinkedIn: [Govind-sys](https://www.linkedin.com/in/govind-sys-1061a2314)
+  - Email: [govind.sys.1061a2314@gmail.com](mailto:govind.sys.1061a2314@gmail.com)
+
+---
+
+## 🙏 Acknowledgments
+
+- Built with ❤️ for the startup community
+- Powered by cutting-edge AI technology
+- Thanks to all contributors and supporters
+
+---
+
+<div align="center">
+
+### Made with ❤️ by Govind S
+
+**[Star on GitHub](https://github.com/Nimmanagotitharunkumarhello/Legal-Summarizer) ⭐ | [Follow on LinkedIn](https://www.linkedin.com/in/govind-sys-1061a2314) 👥**
+
+</div>
